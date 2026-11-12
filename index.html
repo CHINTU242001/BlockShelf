@@ -96,7 +96,6 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-s
 <label for="t">Type</label>
 <select id="t"><option>Behavior pack</option><option>Texture pack</option><option>Add-on bundle</option></select>
 <label for="d">Short description</label><textarea id="d" rows="3" required maxlength="140"></textarea>
-<label for="f">File (.mcaddon or .mcpack)</label><input id="f" type="file" accept=".mcaddon,.mcpack">
 <label class="check"><input type="checkbox" id="own" required>I made this add-on, or I have permission to share it.</label>
 <div class="row"><button type="button" id="cancel">Cancel</button><button class="primary" type="submit">Publish add-on</button></div>
 </form>
@@ -104,16 +103,14 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-s
 <div id="toast" role="status"></div>
 
 <script>
+var SB_URL='https://oxxmfkodcikppzxunsgu.supabase.co',SB_KEY='sb_publishable_FcGTK3vcbyIjEk2QhytIqw_E91Rn7nf';
+var H={apikey:SB_KEY,'Content-Type':'application/json'};
 var base=[
-{n:'Lantern Lanes',c:'Mira Okafor',t:'Texture pack',p:'Free',d:'Warm, readable lighting for villages and roads.',dl:'12.4k'},
-{n:'Quiet Caves',c:'Dev Rao',t:'Behavior pack',p:'Free',d:'Softer cave ambience with fewer mob spawns near lit areas.',dl:'8.1k'},
-{n:'Trailblazer Tools',c:'Sam Whitfield',t:'Behavior pack',p:'Free',d:'Adds a compass tool that marks your last three bed locations.',dl:'5.7k'},
-{n:'Orchard Seasons',c:'Hana Lindqvist',t:'Add-on bundle',p:'Paid',d:'Seasonal crops and fruit trees. Sold on the Marketplace.',dl:'3.2k'},
-{n:'Clean Slate UI',c:'Tomas Reyes',t:'Texture pack',p:'Free',d:'A minimal, high-contrast interface made for small phone screens.',dl:'21.0k'},
-{n:'Harbor Town Kit',c:'Ayo Bello',t:'Add-on bundle',p:'Paid',d:'Boats, docks and market stalls with new building blocks.',dl:'2.6k'}
+{n:'Lantern Lanes',c:'Mira Okafor',t:'Texture pack',p:'Free',d:'Warm, readable lighting for villages and roads.'},
+{n:'Quiet Caves',c:'Dev Rao',t:'Behavior pack',p:'Free',d:'Softer cave ambience with fewer mob spawns near lit areas.'},
+{n:'Clean Slate UI',c:'Tomas Reyes',t:'Texture pack',p:'Free',d:'A minimal, high-contrast interface made for small phone screens.'}
 ];
 var items=base.slice(),filter='all',grid=document.getElementById('grid');
-try{var s=JSON.parse(localStorage.getItem('bs_items')||'[]');if(Array.isArray(s))items=s.concat(items)}catch(e){}
 function hue(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h}
 function px(name){var h=hue(name),seed=h+7,o='';for(var i=0;i<36;i++){seed=(seed*1103515245+12345)&0x7fffffff;var l=28+(seed%40);o+='<span style="background:hsl('+h+',38%,'+l+'%)"></span>'}return o}
 function esc(v){return String(v).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
@@ -123,25 +120,33 @@ items.forEach(function(it,i){
 var ok=(filter==='all'||it.p===filter||it.t===filter)&&(it.n+' '+it.c).toLowerCase().indexOf(q)>-1;
 if(!ok)return;
 out+='<article class="card"><div class="top"><div class="px" aria-hidden="true">'+px(it.n)+'</div><div><h3>'+esc(it.n)+'</h3><p class="by">by '+esc(it.c)+'</p></div></div>'+
-'<p class="desc">'+esc(it.d)+'</p><div class="meta"><span class="tag">'+esc(it.t)+'</span><span class="tag">'+esc(it.dl)+' downloads</span></div>'+
+'<p class="desc">'+esc(it.d)+'</p><div class="meta"><span class="tag">'+esc(it.t)+'</span></div>'+
 '<div class="foot"><span class="price">'+(it.p==='Free'?'Free':'Paid')+'</span>'+
 '<span><button class="rep" data-r="'+i+'">Report</button> <button class="'+(it.p==='Free'?'primary':'')+'" data-a="'+i+'">'+(it.p==='Free'?'Download':'View on Marketplace')+'</button></span></div></article>'});
 grid.innerHTML=out||'<p class="empty">No add-ons match yet. Try another search, or upload your own.</p>'}
-function toast(m){var t=document.getElementById('toast');t.textContent=m;t.className='on';setTimeout(function(){t.className=''},2600)}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.className='on';setTimeout(function(){t.className=''},2800)}
+function load(){
+fetch(SB_URL+'/rest/v1/listings?select=*&status=eq.approved&order=created_at.desc',{headers:H})
+.then(function(r){return r.json()})
+.then(function(rows){if(Array.isArray(rows)&&rows.length){items=rows.map(function(r){return{id:r.id,n:r.name,c:r.creator,t:r.type,p:r.price,d:r.description}})}render()})
+.catch(function(){render()})}
 document.querySelectorAll('.chip').forEach(function(b){b.onclick=function(){filter=b.dataset.f;document.querySelectorAll('.chip').forEach(function(x){x.setAttribute('aria-pressed',x===b)});render()}});
 document.getElementById('q').oninput=render;
 grid.onclick=function(e){var r=e.target.dataset.r,a=e.target.dataset.a;
-if(r!==undefined)toast('Thanks. We’ll review this listing.');
-if(a!==undefined)toast(items[a].p==='Free'?'Download starts here once file hosting is connected.':'Opens the creator’s Marketplace page once linked.')};
+if(r!==undefined){var it=items[r];
+if(it.id){fetch(SB_URL+'/rest/v1/reports',{method:'POST',headers:Object.assign({Prefer:'return=minimal'},H),body:JSON.stringify({listing_id:it.id})})}
+toast('Thanks. We will review this listing.')}
+if(a!==undefined)toast(items[a].p==='Free'?'Downloads will work once file storage is connected.':'Opens the creator’s Marketplace page once linked.')};
 var dlg=document.getElementById('dlg');
 document.getElementById('openUpload').onclick=function(){dlg.showModal()};
 document.getElementById('cancel').onclick=function(){dlg.close()};
 document.getElementById('uf').onsubmit=function(){
-var it={n:n.value,c:c.value,t:t.value,p:'Free',d:d.value,dl:'0'};
-items.unshift(it);
-try{var mine=JSON.parse(localStorage.getItem('bs_items')||'[]');mine.unshift(it);localStorage.setItem('bs_items',JSON.stringify(mine))}catch(e){}
-this.reset();render();toast('Published. Your add-on is now listed.')};
-render();
+var f=this;
+fetch(SB_URL+'/rest/v1/listings',{method:'POST',headers:Object.assign({Prefer:'return=minimal'},H),body:JSON.stringify({name:n.value,creator:c.value,type:t.value,description:d.value})})
+.then(function(res){if(res.ok){f.reset();dlg.close();toast('Submitted. Your add-on appears after review.')}else{toast('Could not submit. Please try again.')}})
+.catch(function(){toast('Could not submit. Check your connection.')});
+return false};
+render();load();
 </script>
 </body>
 </html>
