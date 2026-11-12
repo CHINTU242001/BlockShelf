@@ -86,7 +86,7 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-s
 <div class="grid" id="grid" aria-live="polite"></div>
 </main>
 
-<footer><div class="wrap">Blockshelf is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB. Sample listings shown for preview.</div></footer>
+<footer><div class="wrap">Blockshelf is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.</div></footer>
 
 <dialog id="dlg">
 <form id="uf" method="dialog">
@@ -106,11 +106,7 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-s
 <script>
 var SB_URL='https://oxxmfkodcikppzxunsgu.supabase.co',SB_KEY='sb_publishable_FcGTK3vcbyIjEk2QhytIqw_E91Rn7nf';
 var H={apikey:SB_KEY,'Content-Type':'application/json'};
-var base=[
-{n:'Lantern Lanes',c:'Mira Okafor',t:'Texture pack',p:'Free',d:'Warm, readable lighting for villages and roads.'},
-{n:'Quiet Caves',c:'Dev Rao',t:'Behavior pack',p:'Free',d:'Softer cave ambience with fewer mob spawns near lit areas.'},
-{n:'Clean Slate UI',c:'Tomas Reyes',t:'Texture pack',p:'Free',d:'A minimal, high-contrast interface made for small phone screens.'}
-];
+var base=[];
 var items=base.slice(),filter='all',grid=document.getElementById('grid');
 function hue(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h}
 function px(name){var h=hue(name),seed=h+7,o='';for(var i=0;i<36;i++){seed=(seed*1103515245+12345)&0x7fffffff;var l=28+(seed%40);o+='<span style="background:hsl('+h+',38%,'+l+'%)"></span>'}return o}
