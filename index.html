@@ -96,6 +96,7 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-s
 <label for="t">Type</label>
 <select id="t"><option>Behavior pack</option><option>Texture pack</option><option>Add-on bundle</option></select>
 <label for="d">Short description</label><textarea id="d" rows="3" required maxlength="140"></textarea>
+<label for="f">File (.mcaddon or .mcpack, up to 25 MB)</label><input id="f" type="file" accept=".mcaddon,.mcpack" required>
 <label class="check"><input type="checkbox" id="own" required>I made this add-on, or I have permission to share it.</label>
 <div class="row"><button type="button" id="cancel">Cancel</button><button class="primary" type="submit">Publish add-on</button></div>
 </form>
@@ -128,7 +129,7 @@ function toast(m){var t=document.getElementById('toast');t.textContent=m;t.class
 function load(){
 fetch(SB_URL+'/rest/v1/listings?select=*&status=eq.approved&order=created_at.desc',{headers:H})
 .then(function(r){return r.json()})
-.then(function(rows){if(Array.isArray(rows)&&rows.length){items=rows.map(function(r){return{id:r.id,n:r.name,c:r.creator,t:r.type,p:r.price,d:r.description}})}render()})
+.then(function(rows){if(Array.isArray(rows)&&rows.length){items=rows.map(function(r){return{id:r.id,n:r.name,c:r.creator,t:r.type,p:r.price,d:r.description,f:r.file_path}})}render()})
 .catch(function(){render()})}
 document.querySelectorAll('.chip').forEach(function(b){b.onclick=function(){filter=b.dataset.f;document.querySelectorAll('.chip').forEach(function(x){x.setAttribute('aria-pressed',x===b)});render()}});
 document.getElementById('q').oninput=render;
@@ -136,15 +137,22 @@ grid.onclick=function(e){var r=e.target.dataset.r,a=e.target.dataset.a;
 if(r!==undefined){var it=items[r];
 if(it.id){fetch(SB_URL+'/rest/v1/reports',{method:'POST',headers:Object.assign({Prefer:'return=minimal'},H),body:JSON.stringify({listing_id:it.id})})}
 toast('Thanks. We will review this listing.')}
-if(a!==undefined)toast(items[a].p==='Free'?'Downloads will work once file storage is connected.':'Opens the creator’s Marketplace page once linked.')};
+if(a!==undefined){var x=items[a];if(x.p==='Free'&&x.f){window.open(SB_URL+'/storage/v1/object/public/addons/'+encodeURIComponent(x.f),'_blank')}else{toast(x.p==='Free'?'No file attached to this listing yet.':'Opens the creator’s Marketplace page once linked.')}}};
 var dlg=document.getElementById('dlg');
 document.getElementById('openUpload').onclick=function(){dlg.showModal()};
 document.getElementById('cancel').onclick=function(){dlg.close()};
 document.getElementById('uf').onsubmit=function(){
-var f=this;
-fetch(SB_URL+'/rest/v1/listings',{method:'POST',headers:Object.assign({Prefer:'return=minimal'},H),body:JSON.stringify({name:n.value,creator:c.value,type:t.value,description:d.value})})
-.then(function(res){if(res.ok){f.reset();dlg.close();toast('Submitted. Your add-on appears after review.')}else{toast('Could not submit. Please try again.')}})
-.catch(function(){toast('Could not submit. Check your connection.')});
+var f=this,file=document.getElementById('f').files[0];
+if(!file){toast('Choose a file to upload.');return false}
+var ext=(file.name.split('.').pop()||'').toLowerCase();
+if(ext!=='mcaddon'&&ext!=='mcpack'){toast('Use a .mcaddon or .mcpack file.');return false}
+if(file.size>25*1024*1024){toast('File is too large. The limit is 25 MB.');return false}
+var key=Date.now()+'-'+Math.random().toString(36).slice(2,10)+'.'+ext;
+toast('Uploading…');
+fetch(SB_URL+'/storage/v1/object/addons/'+key,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/octet-stream'},body:file})
+.then(function(u){if(!u.ok)throw 0;return fetch(SB_URL+'/rest/v1/listings',{method:'POST',headers:Object.assign({Prefer:'return=minimal'},H),body:JSON.stringify({name:n.value,creator:c.value,type:t.value,description:d.value,file_path:key})})})
+.then(function(res){if(!res.ok)throw 0;f.reset();dlg.close();toast('Submitted. Your add-on appears after review.')})
+.catch(function(){toast('Could not submit. Please try again.')});
 return false};
 render();load();
 </script>
